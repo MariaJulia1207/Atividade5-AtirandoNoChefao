@@ -7,6 +7,7 @@ public class BossProjectile : MonoBehaviour
     private Vector2 direction = Vector2.down;
     private float lifetime = 4f;
     private float timer;
+    private bool hasHit = false;
 
     private IObjectPool<GameObject> pool;
 
@@ -24,6 +25,7 @@ public class BossProjectile : MonoBehaviour
     void OnEnable()
     {
         timer = lifetime;
+        hasHit = false;
     }
 
     void Update()
@@ -39,9 +41,20 @@ public class BossProjectile : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
+        if (hasHit) return;
+
+        // Ignora qualquer colisão com o próprio Boss
+        if (other.CompareTag("Boss")) return;
+
         if (other.CompareTag("Player"))
         {
-            // Causar dano ao jogador (se aplicável)
+            hasHit = true;
+
+            if (other.TryGetComponent<HealthSystem>(out var health))
+            {
+                health.TakeDamage(1);
+            }
+
             ReleaseToPool();
         }
     }

@@ -5,11 +5,12 @@ public class Projectile : MonoBehaviour
 {
     public float speed = 10f;
     public float lifetime = 2f;
+    public float damage = 1f;
 
     private IObjectPool<GameObject> pool;
     private float timer;
+    private bool hasHit = false; // Trava para impedir múltiplos acertos no mesmo frame
 
-    // Registra a referência do pool que gerencia este projétil
     public void SetPool(IObjectPool<GameObject> poolInstance)
     {
         pool = poolInstance;
@@ -17,16 +18,14 @@ public class Projectile : MonoBehaviour
 
     void OnEnable()
     {
-        // Reinicia o tempo de vida sempre que a bala é ativada do pool
         timer = lifetime;
+        hasHit = false; // Reseta a trava ao sair do pool
     }
 
     void Update()
     {
-        // Movimento do projétil
         transform.Translate(Vector3.up * speed * Time.deltaTime);
 
-        // Contagem regressiva do tempo de vida
         timer -= Time.deltaTime;
         if (timer <= 0f)
         {
@@ -36,9 +35,18 @@ public class Projectile : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
+        // Se já atingiu um alvo neste ciclo, ignora colisões adicionais
+        if (hasHit) return;
+
         if (other.CompareTag("Boss"))
         {
-            Destroy(other.gameObject);
+            hasHit = true;
+
+            if (other.TryGetComponent<Boss>(out var boss))
+            {
+                boss.TakeDamage(damage); // Aplica exatamente 1 ponto de dano
+            }
+
             ReleaseToPool();
         }
     }

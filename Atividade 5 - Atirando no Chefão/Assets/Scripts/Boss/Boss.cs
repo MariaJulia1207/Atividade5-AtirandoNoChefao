@@ -1,11 +1,10 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Pool;
 
 public class Boss : MonoBehaviour
 {
     [Header("Vida")]
-    public float maxHealth = 1000f; // Vida alta para durar no mínimo 1 minuto
+    public float maxHealth = 1000f;
     public float currentHealth;
 
     [Header("Prefabs de Projéteis")]
@@ -13,26 +12,26 @@ public class Boss : MonoBehaviour
     public GameObject projectileBossPrefab2;
     public GameObject projectileBossPrefab3;
 
+    [Header("Ponto de Disparo")]
+    [Tooltip("Arraste um objeto filho posicionado abaixo do Boss para os tiros não nascerem dentro dele")]
+    public Transform firePoint;
+
     [Header("Limites de Movimentação (Eixo X)")]
     public float minX = -6f;
     public float maxX = 6f;
 
-    // Pools individuais para cada prefab de projétil
     private ObjectPool<GameObject> pool1;
     private ObjectPool<GameObject> pool2;
     private ObjectPool<GameObject> pool3;
 
-    // Estados de Vida do Chefão
     public enum HealthPhase { High, Medium, Low }
     public HealthPhase currentPhase;
 
-    // Gerenciador de Comportamento Atual
     private IBossBehavior currentBehavior;
     private int currentBehaviorIndex = 0;
     private float behaviorTimer = 0f;
-    public float behaviorSwitchInterval = 7f; // Alterna comportamentos a cada 7s
+    public float behaviorSwitchInterval = 7f;
 
-    // Lista com as 3 variações de comportamento de cada fase
     private IBossBehavior[] highHealthBehaviors;
     private IBossBehavior[] mediumHealthBehaviors;
     private IBossBehavior[] lowHealthBehaviors;
@@ -41,12 +40,10 @@ public class Boss : MonoBehaviour
     {
         currentHealth = maxHealth;
 
-        // Criar pools independentes para os 3 tipos de projétil
         pool1 = CreatePool(projectileBossPrefab1);
         pool2 = CreatePool(projectileBossPrefab2);
         pool3 = CreatePool(projectileBossPrefab3);
 
-        // Inicializar os 9 comportamentos (3 por fase)
         highHealthBehaviors = new IBossBehavior[] {
             new EasyBehavior1(this),
             new EasyBehavior2(this),
@@ -70,10 +67,8 @@ public class Boss : MonoBehaviour
 
     void Update()
     {
-        // Atualizar fase de vida com base na saúde atual
         UpdateHealthPhase();
 
-        // Controlar a alternância automática entre os 3 comportamentos da fase atual
         behaviorTimer += Time.deltaTime;
         if (behaviorTimer >= behaviorSwitchInterval)
         {
@@ -82,7 +77,6 @@ public class Boss : MonoBehaviour
             SetBehavior(GetCurrentPhaseBehaviors()[currentBehaviorIndex]);
         }
 
-        // Executar a lógica do comportamento ativo
         currentBehavior?.UpdateBehavior();
     }
 
@@ -98,7 +92,6 @@ public class Boss : MonoBehaviour
         else
             newPhase = HealthPhase.Low;
 
-        // Se mudou de fase de vida, reseta a rotação de comportamentos
         if (newPhase != currentPhase || currentBehavior == null)
         {
             currentPhase = newPhase;
@@ -110,12 +103,12 @@ public class Boss : MonoBehaviour
 
     private IBossBehavior[] GetCurrentPhaseBehaviors()
     {
-        switch (currentPhase)
+        return currentPhase switch
         {
-            case HealthPhase.High: return highHealthBehaviors;
-            case HealthPhase.Medium: return mediumHealthBehaviors;
-            default: return lowHealthBehaviors;
-        }
+            HealthPhase.High => highHealthBehaviors,
+            HealthPhase.Medium => mediumHealthBehaviors,
+            _ => lowHealthBehaviors
+        };
     }
 
     private void SetBehavior(IBossBehavior newBehavior)
@@ -125,7 +118,6 @@ public class Boss : MonoBehaviour
         currentBehavior?.Enter();
     }
 
-    // Método genérico para criar ObjectPool
     private ObjectPool<GameObject> CreatePool(GameObject prefab)
     {
         return new ObjectPool<GameObject>(
@@ -138,7 +130,6 @@ public class Boss : MonoBehaviour
         );
     }
 
-    // Função pública para que os comportamentos façam disparos
     public void FireProjectile(int prefabIndex, Vector2 direction, float speed)
     {
         ObjectPool<GameObject> targetPool = prefabIndex switch
@@ -149,7 +140,10 @@ public class Boss : MonoBehaviour
         };
 
         GameObject proj = targetPool.Get();
-        proj.transform.position = transform.position;
+
+        // Usa o FirePoint se estiver atribuído, senão usa uma posição deslocada para baixo
+        Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position + (Vector3.down * 1.2f);
+        proj.transform.position = spawnPos;
         proj.transform.rotation = Quaternion.identity;
 
         if (proj.TryGetComponent<BossProjectile>(out var bossProj))
@@ -159,22 +153,23 @@ public class Boss : MonoBehaviour
         }
     }
 
-    // Receber dano vindo dos Tiros do Jogador
     public void TakeDamage(float damage)
     {
         currentHealth -= damage;
+        currentHealth = Mathf.Max(currentHealth, 0f);
+
         if (currentHealth <= 0f)
         {
-            currentHealth = 0f;
             Destroy(gameObject);
         }
     }
 
+    // Apenas a tag "PlayerProjectile" causa dano ao Boss
     void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("PlayerProjectile"))
         {
-            TakeDamage(10f);
+            // O dano é processado pelo script do projétil do jogador para evitar chamadas duplas
         }
     }
 }

@@ -17,7 +17,7 @@ public class EasyBehavior1 : IBossBehavior
     public void UpdateBehavior()
     {
         // Movimentação
-        float x = Mathf.Sin(Time.time * 1.5f) * boss.maxX;
+        float x = Mathf.Sin(Time.time * 1f) * boss.maxX;
         boss.transform.position = new Vector3(x, boss.transform.position.y, 0f);
 
         // Tiro
@@ -92,7 +92,7 @@ public class MediumBehavior1 : IBossBehavior
 
     public void UpdateBehavior()
     {
-        float x = Mathf.Sin(Time.time * 3f) * boss.maxX;
+        float x = Mathf.Sin(Time.time * 1.5f) * boss.maxX;
         boss.transform.position = new Vector3(x, boss.transform.position.y, 0f);
 
         shootTimer += Time.deltaTime;
@@ -173,17 +173,17 @@ public class HardBehavior1 : IBossBehavior
 
     public void UpdateBehavior()
     {
-        float x = Mathf.Sin(Time.time * 5f) * boss.maxX;
+        float x = Mathf.Sin(Time.time * 2f) * boss.maxX;
         boss.transform.position = new Vector3(x, boss.transform.position.y, 0f);
 
         shootTimer += Time.deltaTime;
         if (shootTimer >= 0.25f)
         {
             shootTimer = 0f;
-            boss.FireProjectile(3, new Vector2(-0.6f, -1f), 9f);
-            boss.FireProjectile(3, new Vector2(-0.2f, -1f), 9f);
-            boss.FireProjectile(3, new Vector2(0.2f, -1f), 9f);
-            boss.FireProjectile(3, new Vector2(0.6f, -1f), 9f);
+            boss.FireProjectile(3, new Vector2(-1f, -1f), 9f);
+            boss.FireProjectile(3, new Vector2(-0.5f, -1f), 9f);
+            boss.FireProjectile(3, new Vector2(0.5f, -1f), 9f);
+            boss.FireProjectile(3, new Vector2(1f, -1f), 9f);
         }
     }
 }
