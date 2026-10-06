@@ -286,6 +286,12 @@ public class Boss : MonoBehaviour
         {
             isDead = true;
             currentBehavior?.Exit();
+
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.FinishGame(GameManager.EndGameResult.Victory);
+            }
+
             Destroy(gameObject);
             return;
         }

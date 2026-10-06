@@ -48,6 +48,12 @@ public class HealthSystem : MonoBehaviour
     private void Die()
     {
         OnPlayerDied?.Invoke();
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.FinishGame(GameManager.EndGameResult.Defeat);
+        }
+
         gameObject.SetActive(false);
     }
 }

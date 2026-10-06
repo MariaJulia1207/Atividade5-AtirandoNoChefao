@@ -13,7 +13,14 @@ public class GameManager : MonoBehaviour
     {
         Iniciando,
         MenuPrincipal,
-        Gameplay
+        Gameplay,
+        EndGame
+    }
+
+    public enum EndGameResult
+    {
+        Victory,
+        Defeat
     }
 
     private static GameManager _instance;
@@ -45,6 +52,7 @@ public class GameManager : MonoBehaviour
     private GameState initialState = GameState.Iniciando;
 
     public GameState State { get; private set; }
+    public static EndGameResult LastEndGameResult { get; private set; }
     public event Action<GameState> OnStateChanged;
 
     private bool _isLoadingScene;
@@ -88,10 +96,19 @@ public class GameManager : MonoBehaviour
             case "MenuPrincipal":
                 SetState(GameState.MenuPrincipal);
                 break;
-            case "SampleScene":
+            case "Shooter":
                 SetState(GameState.Gameplay);
                 break;
+            case "EndGame":
+                SetState(GameState.EndGame);
+                break;
         }
+    }
+
+    public void FinishGame(EndGameResult result)
+    {
+        LastEndGameResult = result;
+        SceneManager.LoadScene("EndGame");
     }
 
     public bool RequestSceneChange(string sceneName)
