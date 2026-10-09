@@ -3,10 +3,6 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// GameManager responsável apenas por manter o singleton, o estado da cena e
-/// as transições entre cenas que o projeto usa no momento.
-/// </summary>
 public class GameManager : MonoBehaviour
 {
     public enum GameState
@@ -36,20 +32,17 @@ public class GameManager : MonoBehaviour
 #else
                 _instance = FindObjectOfType<GameManager>();
 #endif
-
                 if (_instance == null)
                 {
                     var go = new GameObject("GameManager");
                     _instance = go.AddComponent<GameManager>();
                 }
             }
-
             return _instance;
         }
     }
 
-    [SerializeField]
-    private GameState initialState = GameState.Iniciando;
+    [SerializeField] private GameState initialState = GameState.Iniciando;
 
     public GameState State { get; private set; }
     public static EndGameResult LastEndGameResult { get; private set; }
@@ -70,111 +63,73 @@ public class GameManager : MonoBehaviour
         State = initialState;
     }
 
-    private void OnEnable()
-    {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        MapSceneToState(SceneManager.GetActiveScene().name);
-    }
-
-    private void OnDisable()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
-
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        MapSceneToState(scene.name);
-    }
-
-    private void MapSceneToState(string sceneName)
-    {
-        switch (sceneName)
-        {
-            case "_Boot":
-                SetState(GameState.Iniciando);
-                break;
-            case "MenuPrincipal":
-                SetState(GameState.MenuPrincipal);
-                break;
-            case "Shooter":
-                SetState(GameState.Gameplay);
-                break;
-            case "EndGame":
-                SetState(GameState.EndGame);
-                break;
-        }
-    }
-
     public void FinishGame(EndGameResult result)
     {
+        if (_isLoadingScene) return;
+
         LastEndGameResult = result;
-        SceneManager.LoadScene("EndGame");
+        StartCoroutine(FinishGameCoroutine());
     }
 
-    public bool RequestSceneChange(string sceneName)
+    private IEnumerator FinishGameCoroutine()
     {
-        if (_isLoadingScene)
+        _isLoadingScene = true;
+
+        // 1. Descarrega a cena GUI se estiver aberta
+        Scene guiScene = SceneManager.GetSceneByName("GUI");
+        if (guiScene.isLoaded)
         {
-            Debug.LogWarning("GameManager: já está carregando uma cena.");
-            return false;
+            AsyncOperation unloadGuiOp = SceneManager.UnloadSceneAsync("GUI");
+            while (unloadGuiOp != null && !unloadGuiOp.isDone)
+                yield return null;
         }
 
-        if (State == GameState.Iniciando)
-        {
-            Debug.LogWarning($"GameManager: mudança para '{sceneName}' negada — estado atual: {State}");
-            return false;
-        }
+        // 2. Carrega a cena EndGame em modo Aditivo sobre a cena Shooter
+        AsyncOperation loadEndGameOp = SceneManager.LoadSceneAsync("EndGame", LoadSceneMode.Additive);
+        while (loadEndGameOp != null && !loadEndGameOp.isDone)
+            yield return null;
 
-        StartCoroutine(LoadSceneCoroutine(sceneName, LoadSceneMode.Single));
-        return true;
+        SetState(GameState.EndGame);
+        _isLoadingScene = false;
     }
 
     public void ForceSceneChange(string sceneName)
     {
-        if (_isLoadingScene)
+        if (_isLoadingScene) return;
+
+        if (sceneName == "Shooter")
         {
-            Debug.LogWarning("GameManager: já está carregando uma cena.");
-            return;
+            StartCoroutine(LoadGameplayCoroutine());
         }
-
-        StartCoroutine(LoadSceneCoroutine(sceneName, LoadSceneMode.Single));
-    }
-
-    public void StartBootLoad(string targetSceneName)
-    {
-        if (_isLoadingScene)
+        else
         {
-            Debug.LogWarning("GameManager: já está carregando uma cena.");
-            return;
+            StartCoroutine(LoadSingleSceneCoroutine(sceneName));
         }
-
-        StartCoroutine(LoadSceneFromBootCoroutine(targetSceneName));
     }
 
-    public void SetState(GameState newState)
-    {
-        if (State == newState)
-            return;
-
-        State = newState;
-        Debug.Log($"GameManager: estado alterado para {State}");
-        OnStateChanged?.Invoke(State);
-    }
-
-    private IEnumerator LoadSceneCoroutine(string sceneName, LoadSceneMode mode)
+    private IEnumerator LoadGameplayCoroutine()
     {
         _isLoadingScene = true;
 
-        Debug.Log($"GameManager: carregando cena '{sceneName}' (mode={mode})...");
+        // 1. Carrega a cena de gameplay principal (Shooter)
+        AsyncOperation opShooter = SceneManager.LoadSceneAsync("Shooter", LoadSceneMode.Single);
+        while (!opShooter.isDone)
+            yield return null;
 
-        AsyncOperation op = SceneManager.LoadSceneAsync(sceneName, mode);
-        if (op == null)
-        {
-            Debug.LogError($"GameManager: cena '{sceneName}' não encontrada ou LoadSceneAsync retornou null.");
-            _isLoadingScene = false;
-            yield break;
-        }
+        // 2. Carrega a cena GUI de forma aditiva por cima da Shooter
+        AsyncOperation opGUI = SceneManager.LoadSceneAsync("GUI", LoadSceneMode.Additive);
+        while (!opGUI.isDone)
+            yield return null;
 
+        SetState(GameState.Gameplay);
+        _isLoadingScene = false;
+    }
+
+    private IEnumerator LoadSingleSceneCoroutine(string sceneName)
+    {
+        _isLoadingScene = true;
+
+        AsyncOperation op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
         while (!op.isDone)
             yield return null;
 
@@ -182,38 +137,22 @@ public class GameManager : MonoBehaviour
         _isLoadingScene = false;
     }
 
-    private IEnumerator LoadSceneFromBootCoroutine(string targetSceneName)
+    public void SetState(GameState newState)
     {
-        _isLoadingScene = true;
+        if (State == newState) return;
 
-        var currentScene = SceneManager.GetActiveScene();
-        Debug.Log($"GameManager: Boot sequence — carregando '{targetSceneName}' additivamente...");
+        State = newState;
+        OnStateChanged?.Invoke(State);
+    }
 
-        AsyncOperation loadOp = SceneManager.LoadSceneAsync(targetSceneName, LoadSceneMode.Additive);
-        if (loadOp == null)
+    private void MapSceneToState(string sceneName)
+    {
+        switch (sceneName)
         {
-            Debug.LogError($"GameManager: falha ao iniciar carregamento de '{targetSceneName}'.");
-            _isLoadingScene = false;
-            yield break;
+            case "_Boot": SetState(GameState.Iniciando); break;
+            case "MenuPrincipal": SetState(GameState.MenuPrincipal); break;
+            case "Shooter": SetState(GameState.Gameplay); break;
+            case "EndGame": SetState(GameState.EndGame); break;
         }
-
-        while (!loadOp.isDone)
-            yield return null;
-
-        var loadedScene = SceneManager.GetSceneByName(targetSceneName);
-        if (loadedScene.IsValid())
-            SceneManager.SetActiveScene(loadedScene);
-
-        var unloadOp = SceneManager.UnloadSceneAsync(currentScene);
-        if (unloadOp != null)
-        {
-            while (!unloadOp.isDone)
-                yield return null;
-        }
-
-        MapSceneToState(targetSceneName);
-        _isLoadingScene = false;
-
-        Debug.Log($"GameManager: Boot sequence complete. Loaded '{targetSceneName}'.");
     }
 }

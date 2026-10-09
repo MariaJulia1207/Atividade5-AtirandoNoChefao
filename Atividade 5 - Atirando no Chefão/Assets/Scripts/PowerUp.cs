@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -15,13 +14,12 @@ public class PowerUp : MonoBehaviour
     public PowerUpType powerUpType;
     public float effectValue = 1f;
     public float duration = 5f;
-    public float fallSpeed = 2f; // Velocidade de queda do item
+    public float fallSpeed = 2f;
 
     private IObjectPool<GameObject> pool;
     private float screenBottomLimit = -10f;
     private bool isCollected = false;
 
-    // Configura o pool e a cota de destruição ao ser gerado
     public void SetPool(IObjectPool<GameObject> poolInstance, float bottomLimit)
     {
         pool = poolInstance;
@@ -35,10 +33,8 @@ public class PowerUp : MonoBehaviour
 
     void Update()
     {
-        // Faz o PowerUp cair em direção ao fundo da tela
         transform.Translate(Vector3.down * fallSpeed * Time.deltaTime, Space.World);
 
-        // Se passar do limite inferior da tela sem ser coletado, retorna ao pool
         if (transform.position.y <= screenBottomLimit)
         {
             ReleaseToPool();
@@ -58,39 +54,32 @@ public class PowerUp : MonoBehaviour
 
     public virtual void ApplyEffect(GameObject player)
     {
-        switch (powerUpType)
+        if (player.TryGetComponent<PlayerControl>(out var playerControl))
         {
-            case PowerUpType.Health:
-                if (player.TryGetComponent<HealthSystem>(out var health))
-                {
-                    health.Heal((int)effectValue);
-                }
-                break;
+            switch (powerUpType)
+            {
+                case PowerUpType.Health:
+                    if (player.TryGetComponent<HealthSystem>(out var health))
+                    {
+                        health.Heal((int)effectValue);
+                    }
+                    break;
 
-            case PowerUpType.Speed:
-                if (player.TryGetComponent<PlayerControl>(out var playerControl))
-                {
-                    playerControl.StartCoroutine(ApplyTemporarySpeed(playerControl));
-                }
-                break;
+                case PowerUpType.Speed:
+                    playerControl.ActivateSpeedBoost(effectValue, duration);
+                    break;
 
-            case PowerUpType.Shield:
-                // Lógica para ativar o escudo
-                break;
+                case PowerUpType.Shield:
+                    playerControl.ActivateShield(duration);
+                    break;
 
-            case PowerUpType.DamageBoost:
-                // Lógica para aumentar dano
-                break;
+                case PowerUpType.DamageBoost:
+                    playerControl.ActivateDamageBoost(duration);
+                    break;
+            }
         }
 
         ReleaseToPool();
-    }
-
-    private IEnumerator ApplyTemporarySpeed(PlayerControl player)
-    {
-        player.moveSpeed += effectValue;
-        yield return new WaitForSeconds(duration);
-        player.moveSpeed -= effectValue;
     }
 
     private void ReleaseToPool()

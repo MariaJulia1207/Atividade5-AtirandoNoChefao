@@ -43,9 +43,18 @@ public class BossProjectile : MonoBehaviour
     {
         if (hasHit) return;
 
-        // Ignora qualquer colisão com o próprio Boss
+        // Ignora colisão com o próprio Boss
         if (other.CompareTag("Boss")) return;
 
+        // Se atingir o Escudo: destrói o projétil sem aplicar dano ao jogador
+        if (other.CompareTag("Shield"))
+        {
+            hasHit = true;
+            ReleaseToPool();
+            return;
+        }
+
+        // Se atingir o Jogador (quando o escudo está desativado)
         if (other.CompareTag("Player"))
         {
             hasHit = true;

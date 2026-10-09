@@ -1,21 +1,17 @@
 using UnityEngine;
 
-/// <summary>
-/// Controlador simples para o Menu Principal.
-/// Configure os nomes das cenas no Inspector e ligue os botões às funções abaixo.
-/// </summary>
 public class MenuPrincipalController : MonoBehaviour
 {
     [Header("Cenas")]
     public string shooterScene = "Shooter";
 
     /// <summary>
-    /// Botão: Seleção de Bolinhas
+    /// Botão: Iniciar Jogo
     /// </summary>
     public void OnShooterClicked()
     {
         if (GameManager.Instance != null)
-            GameManager.Instance.RequestSceneChange(shooterScene);
+            GameManager.Instance.ForceSceneChange(shooterScene);
     }
 
     /// <summary>

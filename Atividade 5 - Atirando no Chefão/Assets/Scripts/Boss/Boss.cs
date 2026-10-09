@@ -113,6 +113,12 @@ public class Boss : MonoBehaviour
             animator.SetBool(invulnerableBoolParameter, false);
         }
 
+        // Adicionar dentro do Start() ou Awake() do Boss.cs:
+        if (bossHealthBar == null)
+        {
+            bossHealthBar = FindAnyObjectByType<BossHealthBar>();
+        }
+
         behaviorTimer += Time.deltaTime;
         if (behaviorTimer >= behaviorSwitchInterval)
         {
