@@ -185,7 +185,7 @@ MonoBehaviour:
   player: {fileID: 71130386}
   projectilePrefab: {fileID: 4169643218310131928, guid: 4ff5e44e22bab8e40883d89bd443dcb7, type: 3}
   projectileBoostPrefab: {fileID: 7278812062162577491, guid: 964ce95c0438d0d4fbb1c1c0dbab7037, type: 3}
-  minShootInterval: 0.2
+  minShootInterval: 0.75
   maxShootInterval: 1
   speedTrail: {fileID: 71130393}
   shieldObject: {fileID: 781103265}
