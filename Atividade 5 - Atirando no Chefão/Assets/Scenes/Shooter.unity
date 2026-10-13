@@ -754,7 +754,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c08302c30d2abdb4b9d48241fd10814a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Boss
-  maxHealth: 100
+  maxHealth: 500
   currentHealth: 0
   phaseTransitionInvulnerabilityDuration: 2
   projectileBossPrefab1: {fileID: 3465010300532166721, guid: 9cb1479772f7caf4faee485ef8d41485, type: 3}

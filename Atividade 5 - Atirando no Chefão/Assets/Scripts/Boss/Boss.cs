@@ -1,3 +1,4 @@
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -36,16 +37,17 @@ public class Boss : MonoBehaviour
     private ObjectPool<GameObject> pool2;
     private ObjectPool<GameObject> pool3;
 
-    private IBossBehavior currentBehavior;
     private int currentBehaviorIndex = 0;
     private float behaviorTimer = 0f;
     public float behaviorSwitchInterval = 7f;
     private float invulnerabilityTimer = 0f;
     private bool isDead = false;
 
-    private IBossBehavior[] highHealthBehaviors;
-    private IBossBehavior[] mediumHealthBehaviors;
-    private IBossBehavior[] lowHealthBehaviors;
+    private StateMachineBehaviour currentBehavior;
+    private StateMachineBehaviour[] highHealthBehaviors;
+    private StateMachineBehaviour[] mediumHealthBehaviors;
+    private StateMachineBehaviour[] lowHealthBehaviors;
+
     private HealthPhase lastSyncedAnimatorPhase;
 
     public bool IsInvulnerable => invulnerabilityTimer > 0f;
@@ -61,28 +63,33 @@ public class Boss : MonoBehaviour
         pool2 = CreatePool(projectileBossPrefab2);
         pool3 = CreatePool(projectileBossPrefab3);
 
-        highHealthBehaviors = new IBossBehavior[] {
-            new EasyStateBehaviour.EasyBehavior1(this),
-            new EasyStateBehaviour.EasyBehavior2(this),
-            new EasyStateBehaviour.EasyBehavior3(this)
-        };
-
-        mediumHealthBehaviors = new IBossBehavior[] {
-            new MediumStateBehaviour.MediumBehavior1(this),
-            new MediumStateBehaviour.MediumBehavior2(this),
-            new MediumStateBehaviour.MediumBehavior3(this)
-        };
-
-        lowHealthBehaviors = new IBossBehavior[] {
-            new HardStateBehaviour.HardBehavior1(this),
-            new HardStateBehaviour.HardBehavior2(this),
-            new HardStateBehaviour.HardBehavior3(this)
-        };
+        InitializeBehaviors();
 
         currentPhase = DetermineHealthPhase();
         SyncAnimatorPhase();
         UpdateHealthBar();
         SetBehavior(GetCurrentPhaseBehaviors()[0]);
+    }
+
+    private void InitializeBehaviors()
+    {
+        highHealthBehaviors = new StateMachineBehaviour[] {
+            new EasyBehaviour1(this),
+            new EasyBehaviour2(this),
+            new EasyBehaviour3(this)
+        };
+
+        mediumHealthBehaviors = new StateMachineBehaviour[] {
+            new MediumBehaviour1(this),
+            new MediumBehaviour2(this),
+            new MediumBehaviour3(this)
+        };
+
+        lowHealthBehaviors = new StateMachineBehaviour[] {
+            new HardBehaviour1(this),
+            new HardBehaviour2(this),
+            new HardBehaviour3(this)
+        };
     }
 
     void Update()
@@ -112,7 +119,7 @@ public class Boss : MonoBehaviour
             animator.SetInteger(bossPhaseParameter, (int)currentPhase);
             animator.SetBool(invulnerableBoolParameter, false);
         }
-        
+
         if (bossHealthBar == null)
         {
             bossHealthBar = FindAnyObjectByType<BossHealthBar>();
@@ -122,11 +129,10 @@ public class Boss : MonoBehaviour
         if (behaviorTimer >= behaviorSwitchInterval)
         {
             behaviorTimer = 0f;
-            currentBehaviorIndex = (currentBehaviorIndex + 1) % GetCurrentPhaseBehaviors().Length;
-            SetBehavior(GetCurrentPhaseBehaviors()[currentBehaviorIndex]);
+            StartNextBehavior();
         }
 
-        currentBehavior?.UpdateBehavior();
+        InvokeBehaviorMethod(currentBehavior, "UpdateBehavior");
     }
 
     private void UpdateHealthPhase()
@@ -167,7 +173,7 @@ public class Boss : MonoBehaviour
         behaviorTimer = 0f;
         currentBehaviorIndex = 0;
 
-        currentBehavior?.Exit();
+        InvokeBehaviorMethod(currentBehavior, "Exit");
         currentBehavior = null;
 
         if (animator != null)
@@ -181,15 +187,15 @@ public class Boss : MonoBehaviour
 
     private void StartNextBehavior()
     {
-        IBossBehavior[] behaviors = GetCurrentPhaseBehaviors();
+        StateMachineBehaviour[] behaviors = GetCurrentPhaseBehaviors();
         if (behaviors == null || behaviors.Length == 0)
             return;
 
-        currentBehaviorIndex = 0;
+        currentBehaviorIndex = (currentBehaviorIndex + 1) % behaviors.Length;
         SetBehavior(behaviors[currentBehaviorIndex]);
     }
 
-    private IBossBehavior[] GetCurrentPhaseBehaviors()
+    private StateMachineBehaviour[] GetCurrentPhaseBehaviors()
     {
         return currentPhase switch
         {
@@ -199,11 +205,20 @@ public class Boss : MonoBehaviour
         };
     }
 
-    private void SetBehavior(IBossBehavior newBehavior)
+    private void SetBehavior(StateMachineBehaviour newBehavior)
     {
-        currentBehavior?.Exit();
+        InvokeBehaviorMethod(currentBehavior, "Exit");
         currentBehavior = newBehavior;
-        currentBehavior?.Enter();
+        InvokeBehaviorMethod(currentBehavior, "Enter");
+    }
+
+    private static void InvokeBehaviorMethod(StateMachineBehaviour behavior, string methodName)
+    {
+        if (behavior == null)
+            return;
+
+        MethodInfo method = behavior.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        method?.Invoke(behavior, null);
     }
 
     private Color GetPhaseColor(HealthPhase phase)
@@ -290,7 +305,7 @@ public class Boss : MonoBehaviour
         if (currentHealth <= 0f)
         {
             isDead = true;
-            currentBehavior?.Exit();
+            InvokeBehaviorMethod(currentBehavior, "Exit");
 
             if (GameManager.Instance != null)
             {
