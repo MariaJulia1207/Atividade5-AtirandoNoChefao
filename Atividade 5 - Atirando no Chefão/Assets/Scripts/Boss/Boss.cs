@@ -62,21 +62,21 @@ public class Boss : MonoBehaviour
         pool3 = CreatePool(projectileBossPrefab3);
 
         highHealthBehaviors = new IBossBehavior[] {
-            new EasyBehavior1(this),
-            new EasyBehavior2(this),
-            new EasyBehavior3(this)
+            new EasyStateBehaviour.EasyBehavior1(this),
+            new EasyStateBehaviour.EasyBehavior2(this),
+            new EasyStateBehaviour.EasyBehavior3(this)
         };
 
         mediumHealthBehaviors = new IBossBehavior[] {
-            new MediumBehavior1(this),
-            new MediumBehavior2(this),
-            new MediumBehavior3(this)
+            new MediumStateBehaviour.MediumBehavior1(this),
+            new MediumStateBehaviour.MediumBehavior2(this),
+            new MediumStateBehaviour.MediumBehavior3(this)
         };
 
         lowHealthBehaviors = new IBossBehavior[] {
-            new HardBehavior1(this),
-            new HardBehavior2(this),
-            new HardBehavior3(this)
+            new HardStateBehaviour.HardBehavior1(this),
+            new HardStateBehaviour.HardBehavior2(this),
+            new HardStateBehaviour.HardBehavior3(this)
         };
 
         currentPhase = DetermineHealthPhase();
@@ -112,8 +112,7 @@ public class Boss : MonoBehaviour
             animator.SetInteger(bossPhaseParameter, (int)currentPhase);
             animator.SetBool(invulnerableBoolParameter, false);
         }
-
-        // Adicionar dentro do Start() ou Awake() do Boss.cs:
+        
         if (bossHealthBar == null)
         {
             bossHealthBar = FindAnyObjectByType<BossHealthBar>();
