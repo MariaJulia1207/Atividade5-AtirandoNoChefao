@@ -767,6 +767,7 @@ MonoBehaviour:
   bossHealthBar: {fileID: 0}
   bossPhaseParameter: BossPhase
   behaviorIndexParameter: BehaviorIndex
+  previousBehaviorParameter: PreviousBehavior
   phaseChangedTriggerParameter: PhaseChanged
   invulnerableBoolParameter: Invulnerable
   hurtTriggerParameter: Hit

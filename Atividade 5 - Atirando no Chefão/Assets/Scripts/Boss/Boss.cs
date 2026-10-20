@@ -27,6 +27,7 @@ public class Boss : MonoBehaviour
     [SerializeField] private BossHealthBar bossHealthBar;
     [SerializeField] private string bossPhaseParameter = "BossPhase";
     [SerializeField] private string behaviorIndexParameter = "BehaviorIndex";
+    [SerializeField] private string previousBehaviorParameter = "PreviousBehavior";
     [SerializeField] private string phaseChangedTriggerParameter = "PhaseChanged";
     [SerializeField] private string invulnerableBoolParameter = "Invulnerable";
     [SerializeField] private string hurtTriggerParameter = "Hit";
@@ -306,6 +307,15 @@ public class Boss : MonoBehaviour
         }
     }
 
+    private void NotifyDamageAnimation()
+    {
+        if (animator == null)
+            return;
+
+        animator.SetInteger(previousBehaviorParameter, currentBehaviorIndex);
+        animator.SetTrigger(hurtTriggerParameter);
+    }
+
     public void TakeDamage(float damage)
     {
         if (isDead || IsInvulnerable)
@@ -313,7 +323,8 @@ public class Boss : MonoBehaviour
 
         currentHealth -= damage;
         currentHealth = Mathf.Max(currentHealth, 0f);
-        TriggerDamageAnimation();
+
+        NotifyDamageAnimation();
         UpdateHealthBar();
 
         if (currentHealth <= 0f)
