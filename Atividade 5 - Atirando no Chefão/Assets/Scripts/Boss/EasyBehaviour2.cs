@@ -28,6 +28,11 @@ public class EasyBehaviour2 : StateMachineBehaviour
     public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
         UpdateBehavior();
+
+        if (stateInfo.normalizedTime >= 1f)
+        {
+            animator.SetInteger("BehaviorIndex", 2);
+        }
     }
 
     public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)

@@ -26,6 +26,7 @@ public class Boss : MonoBehaviour
     [SerializeField] private Animator animator;
     [SerializeField] private BossHealthBar bossHealthBar;
     [SerializeField] private string bossPhaseParameter = "BossPhase";
+    [SerializeField] private string behaviorIndexParameter = "BehaviorIndex";
     [SerializeField] private string phaseChangedTriggerParameter = "PhaseChanged";
     [SerializeField] private string invulnerableBoolParameter = "Invulnerable";
     [SerializeField] private string hurtTriggerParameter = "Hit";
@@ -68,6 +69,8 @@ public class Boss : MonoBehaviour
         currentPhase = DetermineHealthPhase();
         SyncAnimatorPhase();
         UpdateHealthBar();
+        currentBehaviorIndex = 0;
+        SyncBehaviorIndex();
         SetBehavior(GetCurrentPhaseBehaviors()[0]);
     }
 
@@ -156,6 +159,14 @@ public class Boss : MonoBehaviour
         lastSyncedAnimatorPhase = currentPhase;
     }
 
+    private void SyncBehaviorIndex()
+    {
+        if (animator == null)
+            return;
+
+        animator.SetInteger(behaviorIndexParameter, currentBehaviorIndex);
+    }
+
     private HealthPhase DetermineHealthPhase()
     {
         float healthPercent = currentHealth / maxHealth;
@@ -172,6 +183,7 @@ public class Boss : MonoBehaviour
         invulnerabilityTimer = phaseTransitionInvulnerabilityDuration;
         behaviorTimer = 0f;
         currentBehaviorIndex = 0;
+        SyncBehaviorIndex();
 
         InvokeBehaviorMethod(currentBehavior, "Exit");
         currentBehavior = null;
@@ -192,6 +204,7 @@ public class Boss : MonoBehaviour
             return;
 
         currentBehaviorIndex = (currentBehaviorIndex + 1) % behaviors.Length;
+        SyncBehaviorIndex();
         SetBehavior(behaviors[currentBehaviorIndex]);
     }
 
@@ -209,6 +222,7 @@ public class Boss : MonoBehaviour
     {
         InvokeBehaviorMethod(currentBehavior, "Exit");
         currentBehavior = newBehavior;
+        SyncBehaviorIndex();
         InvokeBehaviorMethod(currentBehavior, "Enter");
     }
 
